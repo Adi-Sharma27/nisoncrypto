@@ -1,0 +1,8 @@
+{
+  "appId": "com.nisoncrypto.deltaevaluator",
+  "appName": "NisonCrypto",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

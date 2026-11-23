@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NisonCrypto — Delta Exchange Trade Evaluator</title>
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #172033;
+      --bg-section: #131b2c;
+      --border-subtle: rgba(148, 163, 184, 0.16);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent-bull: #10b981;
+      --accent-bull-bg: rgba(16, 185, 129, 0.14);
+      --accent-bear: #ef4444;
+      --accent-bear-bg: rgba(239, 68, 68, 0.14);
+      --accent-wait: #f59e0b;
+      --accent-wait-bg: rgba(245, 158, 11, 0.14);
+      --accent-blue: #38bdf8;
+      --accent-blue-bg: rgba(56, 189, 248, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.45;
+    }
+
+    .app-header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #10b981, #0284c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--accent-bull-bg);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      white-space: nowrap;
+    }
+
+    .pill-status.fallback {
+      background: var(--accent-wait-bg);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-ghost {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border-strong);
+    }
+
+    /* Primary 2-Tab Bar: Tab 1 = Chat, Tab 2 = Chart */
+    .primary-tab-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-strong);
+      padding: 6px 12px;
+      gap: 8px;
+      position: sticky;
+      top: 59px;
+      z-index: 25;
+    }
+
+    .primary-tab-btn {
+      padding: 10px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .primary-tab-btn.active {
+      background: var(--accent-blue-bg);
+      color: #7dd3fc;
+      border-color: rgba(56, 189, 248, 0.55);
+    }
+
+    .main-container {
+      flex: 1;
+      max-width: 1120px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Section-Wise Partition Blocks */
+    .partition-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .partition-header {
+      background: var(--bg-section);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .partition-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+    }
+
+    .partition-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .partition-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Chat Tab Partition Styles */
+    .chat-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 430px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .msg-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-blue);
+      flex-shrink: 0;
+    }
+
+    .msg-bubble-user {
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 12px 12px 2px 12px;
+      font-size: 13.5px;
+      max-width: 85%;
+    }
+
+    .msg-card-bot {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .verdict-top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .verdict-badge {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 7px;
+      letter-spacing: 0.02em;
+    }
+
+    .verdict-badge.CALL {
+      background: var(--accent-bull-bg);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .verdict-badge.PUT {
+      background: var(--accent-bear-bg);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .verdict-badge.WAIT {
+      background: var(--accent-wait-bg);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .score-pill {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 7px;
+    }
+
+    .summary-text {
+      font-size: 13.5px;
+      color: var(--text-primary);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 8px;
+    }
+
+    .meta-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 9px 10px;
+    }
+
+    .meta-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .meta-val {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .meta-val.entry { color: #38bdf8; }
+    .meta-val.target { color: #34d399; }
+    .meta-val.stop { color: #f87171; }
+
+    .reasons-list {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .watchout-box {
+      background: rgba(245, 158, 11, 0.08);
+      border-left: 3px solid var(--accent-wait);
+      padding: 8px 11px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #fde68a;
+    }
+
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .chip-btn {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--text-primary);
+    }
+
+    .composer-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .trade-input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 11px 13px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .trade-input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.08);
+    }
+
+    /* Chart Tab Partition Controls & Snapshot */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .symbol-group, .tf-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .mini-btn {
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn.active {
+      background: var(--accent-blue-bg);
+      color: #7dd3fc;
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 9px;
+    }
+
+    .snap-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .snap-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .snap-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .snap-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 360px;
+      background: #0b101d;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    canvas#candleCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .chart-overlay-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Guide Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.8);
+      z-index: 60;
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-body {
+      padding: 14px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .guide-search {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .guide-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .guide-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .guide-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="brand-badge">NC</div>
+      <div>
+        <div class="brand-title">NisonCrypto</div>
+        <div class="brand-sub">Delta Exchange • Steve Nison 2nd Ed.</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="feedBadge" class="pill-status">Live Delta Feed</span>
+      <button id="openGuideBtn" class="btn-ghost" type="button">Candle Guide</button>
+    </div>
+  </header>
+
+  <!-- Primary 2-Tab Navigation: Tab 1 = Chat, Tab 2 = Chart -->
+  <nav class="primary-tab-bar" aria-label="Main Views">
+    <button id="tabChatBtn" class="primary-tab-btn active" type="button">
+      <span>1. Chat Evaluator</span>
+    </button>
+    <button id="tabChartBtn" class="primary-tab-btn" type="button">
+      <span>2. Live Chart</span>
+    </button>
+  </nav>
+
+  <main class="main-container">
+    <!-- ==================== TAB 1: CHAT (SECTION-WISE PARTITIONS) ==================== -->
+    <section id="chatTabPane" class="tab-pane active">
+      <!-- Partition 1A: Live Market Context Strip -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 1 • Active Market &amp; Signal Status</span>
+          <span id="chatActivePairLabel" class="partition-hint">BTCUSD • 15m</span>
+        </div>
+        <div class="partition-body">
+          <div class="snapshot-grid" id="chatSnapshotGrid">
+            <div class="snap-card">
+              <div class="snap-label">Last Price</div>
+              <div class="snap-value" id="chatSnapPrice">--</div>
+              <div class="snap-sub" id="chatSnapChange">Syncing...</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">Candlestick Signal</div>
+              <div class="snap-value" id="chatSnapPattern">Scanning...</div>
+              <div class="snap-sub" id="chatSnapConfirm">Waiting on close</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">Trend &amp; RSI (14)</div>
+              <div class="snap-value" id="chatSnapTrend">--</div>
+              <div class="snap-sub" id="chatSnapRsi">RSI --</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">Floor &amp; Ceiling</div>
+              <div class="snap-value" id="chatSnapLevels">--</div>
+              <div class="snap-sub" id="chatSnapVolume">Vol ratio --</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partition 1B: Trade Evaluation Conversation Feed -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 2 • Trade Verdict Chat</span>
+          <span class="partition-hint">Plain English • No Extra Questions</span>
+        </div>
+        <div class="partition-body">
+          <div id="chatFeed" class="chat-feed"></div>
+        </div>
+      </div>
+
+      <!-- Partition 1C: Quick Trade Prompts & Message Input -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 3 • Ask About Your Call or Put Trade</span>
+          <span class="partition-hint">Auto-checks chart &amp; plots levels</span>
+        </div>
+        <div class="partition-body">
+          <div class="quick-chips" id="quickChips">
+            <button class="chip-btn" type="button" data-q="Should I buy a BTC Call or Put on the 15m chart right now?">BTC 15m Call or Put?</button>
+            <button class="chip-btn" type="button" data-q="Is an ETH 1h Call trade good or bad right now?">ETH 1h Call Check</button>
+            <button class="chip-btn" type="button" data-q="Should I take a SOL 5m Put trade right now?">SOL 5m Put Check</button>
+            <button class="chip-btn" type="button" data-q="Check XRP 15m candle setup and best timing">XRP 15m Timing</button>
+          </div>
+          <form id="chatForm" class="composer-form">
+            <input
+              id="tradeInput"
+              class="trade-input"
+              type="text"
+              placeholder="Example: Should I buy a BTC 15m Call or Put right now?"
+              autocomplete="off"
+              required
+            />
+            <button class="btn-primary" type="submit">Check Trade</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: CHART (SECTION-WISE PARTITIONS) ==================== -->
+    <section id="chartTabPane" class="tab-pane">
+      <!-- Partition 2A: Pair & Timeframe Selector -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 1 • Pair &amp; Timeframe Controls</span>
+          <span id="chartLastUpdated" class="partition-hint">Updated --</span>
+        </div>
+        <div class="partition-body">
+          <div class="controls-row">
+            <div class="symbol-group" id="symbolGroup"></div>
+            <div class="tf-group" id="tfGroup"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partition 2B: Live Candlestick Chart & Plotted Trade Levels -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 2 • Candlestick Chart, EMA &amp; Trade Zones</span>
+          <button id="clearLevelsBtn" class="btn-ghost" type="button">Clear Trade Lines</button>
+        </div>
+        <div class="partition-body">
+          <div class="chart-canvas-wrap">
+            <canvas id="candleCanvas"></canvas>
+          </div>
+          <div class="chart-overlay-bar">
+            <span id="hoverReadout">Hover or tap a candle to see Open, High, Low, Close</span>
+            <span id="plottedLevelsReadout">Entry: -- | Target: -- | Stop: --</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partition 2C: Candlestick Pattern & Technical Breakdown -->
+      <div class="partition-section">
+        <div class="partition-header">
+          <span class="partition-label">Section 3 • Chart Pattern &amp; Support/Resistance Breakdown</span>
+          <span class="partition-hint">Steve Nison 2nd Edition + EMA/RSI</span>
+        </div>
+        <div class="partition-body">
+          <div class="snapshot-grid">
+            <div class="snap-card">
+              <div class="snap-label">Detected Candle Pattern</div>
+              <div class="snap-value" id="detailPatternName">--</div>
+              <div class="snap-sub" id="detailPatternBias">--</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">EMA 9 / EMA 21</div>
+              <div class="snap-value" id="detailEma">--</div>
+              <div class="snap-sub" id="detailEmaBias">--</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">Nearest Floor (Support)</div>
+              <div class="snap-value" id="detailSupport">--</div>
+              <div class="snap-sub" id="detailSupportNote">Swing low zone</div>
+            </div>
+            <div class="snap-card">
+              <div class="snap-label">Nearest Ceiling (Resistance)</div>
+              <div class="snap-value" id="detailResistance">--</div>
+              <div class="snap-sub" id="detailResistanceNote">Swing high zone</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Plain-English Candle Guide Modal -->
+  <div id="guideModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong id="guideTitle">Simple Candlestick Guide (Plain English)</strong>
+        <button id="closeGuideBtn" class="btn-ghost" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <input id="guideSearch" class="guide-search" type="text" placeholder="Search pattern like hammer, engulfing, star, doji, window..." />
+        <div id="guideList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "BNBUSD", "SUIUSD", "AVAXUSD", "LINKUSD", "ADAUSD"];
+    const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"];
+    const BASE_PRICES = {
+      BTCUSD: 94250,
+      ETHUSD: 3280,
+      SOLUSD: 218,
+      XRPUSD: 1.48,
+      DOGEUSD: 0.385,
+      BNBUSD: 645,
+      SUIUSD: 3.42,
+      AVAXUSD: 39.5,
+      LINKUSD: 18.2,
+      ADAUSD: 0.74
+    };
+
+    const CANDLE_GUIDE = [
+      { name: "Hammer (After a Drop)", desc: "Small body near the top with a long bottom wick after falling prices. Shows buyers stepped in to push price back up." },
+      { name: "Shooting Star (After a Rise)", desc: "Small body near the bottom with a long top wick after climbing prices. Shows sellers pushed buyers back down." },
+      { name: "Bullish Engulfing", desc: "A strong green candle that completely covers the prior red candle body during a dip. Signals buyers taking charge." },
+      { name: "Bearish Engulfing", desc: "A strong red candle that completely covers the prior green candle body after a rise. Signals sellers taking charge." },
+      { name: "Morning Star (3 Candles)", desc: "Big red candle, small pause candle, then a strong green candle pushing up. A classic bottom-turning signal." },
+      { name: "Evening Star (3 Candles)", desc: "Big green candle, small pause candle, then a strong red candle dropping down. A classic top-turning signal." },
+      { name: "Doji (Indecision)", desc: "Open and close are almost equal. After a strong push up, it warns buyers may be tired." },
+      { name: "Rising / Falling Window (Gap)", desc: "Empty price space between candles. Price often pulls back to test that area before continuing." }
+    ];
+
+    const state = {
+      activeTab: "chat",
+      symbol: "BTCUSD",
+      timeframe: "15m",
+      candles: [],
+      tickerPrice: null,
+      change24h: null,
+      isFallbackFeed: false,
+      audit: null,
+      plottedTrade: null,
+      hoverIndex: null
+    };
+
+    function formatPrice(val) {
+      if (val === null || val === undefined || Number.isNaN(Number(val))) return "--";
+      const n = Number(val);
+      if (n >= 1000) return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (n >= 10) return "$" + n.toFixed(2);
+      if (n >= 1) return "$" + n.toFixed(3);
+      return "$" + n.toFixed(4);
+    }
+
+    function switchPrimaryTab(tabName) {
+      state.activeTab = tabName;
+      const isChat = tabName === "chat";
+      document.getElementById("tabChatBtn").classList.toggle("active", isChat);
+      document.getElementById("tabChartBtn").classList.toggle("active", !isChat);
+      document.getElementById("chatTabPane").classList.toggle("active", isChat);
+      document.getElementById("chartTabPane").classList.toggle("active", !isChat);
+      if (!isChat) {
+        renderCandlestickChart();
+      }
+    }
+
+    function parseSymbolAndTimeframe(text) {
+      const upper = (text || "").toUpperCase();
+      let foundSym = null;
+      for (const s of SYMBOLS) {
+        const shortName = s.replace("USD", "");
+        if (upper.includes(s) || new RegExp("\b" + shortName + "\b").test(upper)) {
+          foundSym = s;
+          break;
+        }
+      }
+      let foundTf = null;
+      const tfMatch = text.match(/(1m|5m|15m|1h|4h|1d)/i);
+      if (tfMatch) {
+        foundTf = tfMatch[1].toLowerCase();
+      }
+      return { symbol: foundSym, timeframe: foundTf };
+    }
+
+    function generateSimulatedCandles(symbol, timeframe, count = 80) {
+      const base = BASE_PRICES[symbol] || 100;
+      const tfSecMap = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
+      const stepSec = tfSecMap[timeframe] || 900;
+      const nowSec = Math.floor(Date.now() / 1000);
+      let price = base * (0.985 + Math.random() * 0.03);
+      const list = [];
+
+      for (let i = 0; i < count; i++) {
+        const ts = nowSec - (count - 1 - i) * stepSec;
+        const volPct = (timeframe === "1m" ? 0.0022 : timeframe === "5m" ? 0.0035 : timeframe === "15m" ? 0.0055 : 0.011);
+        const wave = Math.sin(i * 0.22) * volPct * 0.6;
+        const deltaPct = (Math.random() - 0.485) * volPct * 2.1 + wave;
+        const open = price;
+        const close = Math.max(0.0001, open * (1 + deltaPct));
+        const wickUp = Math.random() * volPct * 0.9;
+        const wickDown = Math.random() * volPct * 0.9;
+        const high = Math.max(open, close) * (1 + wickUp);
+        const low = Math.max(0.0001, Math.min(open, close) * (1 - wickDown));
+        const volume = Math.round(500 + Math.random() * 2500);
+        list.push({ time: ts, open, high, low, close, volume });
+        price = close;
+      }
+      return list;
+    }
+
+    async function fetchDeltaCandles(symbol, timeframe) {
+      const tfSecMap = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
+      const stepSec = tfSecMap[timeframe] || 900;
+      const end = Math.floor(Date.now() / 1000);
+      const start = end - stepSec * 90;
+      const url = `https://api.india.delta.exchange/v2/history/candles?resolution=${encodeURIComponent(timeframe)}&symbol=${encodeURIComponent(symbol)}&start=${start}&end=${end}`;
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const json = await res.json();
+        const raw = Array.isArray(json.result) ? json.result : [];
+        if (raw.length < 15) throw new Error("Insufficient candles");
+        const parsed = raw
+          .map(c => ({
+            time: Number(c.time),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+            volume: Number(c.volume || 0)
+          }))
+          .filter(c => c.open > 0 && c.close > 0 && !Number.isNaN(c.time))
+          .sort((a, b) => a.time - b.time)
+          .slice(-80);
+
+        if (parsed.length < 15) throw new Error("Filtered candles too short");
+        state.isFallbackFeed = false;
+        return parsed;
+      } catch (err) {
+        state.isFallbackFeed = true;
+        return generateSimulatedCandles(symbol, timeframe, 80);
+      }
+    }
+
+    function calcEMA(values, period) {
+      if (!values.length) return [];
+      const k = 2 / (period + 1);
+      const out = [values[0]];
+      for (let i = 1; i < values.length; i++) {
+        out.push(values[i] * k + out[i - 1] * (1 - k));
+      }
+      return out;
+    }
+
+    function calcRSI(closes, period = 14) {
+      if (closes.length <= period) return 50;
+      let gains = 0;
+      let losses = 0;
+      for (let i = closes.length - period; i < closes.length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff >= 0) gains += diff;
+        else losses += Math.abs(diff);
+      }
+      if (losses === 0) return 75;
+      const rs = (gains / period) / (losses / period);
+      return Number((100 - 100 / (1 + rs)).toFixed(1));
+    }
+
+    function runNisonChartAudit(candles) {
+      const closes = candles.map(c => c.close);
+      const last = candles[candles.length - 1];
+      const prev = candles[candles.length - 2] || last;
+      const prev2 = candles[candles.length - 3] || prev;
+
+      const ema9Arr = calcEMA(closes, 9);
+      const ema21Arr = calcEMA(closes, 21);
+      const ema9 = ema9Arr[ema9Arr.length - 1];
+      const ema21 = ema21Arr[ema21Arr.length - 1];
+      const rsi = calcRSI(closes, 14);
+
+      const recent20 = candles.slice(-20);
+      const support = Math.min(...recent20.map(c => c.low));
+      const resistance = Math.max(...recent20.map(c => c.high));
+
+      const avgVol = recent20.reduce((acc, c) => acc + c.volume, 0) / Math.max(1, recent20.length);
+      const volRatio = Number(((last.volume || 1) / Math.max(1, avgVol)).toFixed(2));
+
+      const bodyLast = Math.abs(last.close - last.open);
+      const rangeLast = Math.max(1e-9, last.high - last.low);
+      const lowerWick = Math.min(last.open, last.close) - last.low;
+      const upperWick = last.high - Math.max(last.open, last.close);
+
+      const bodyPrev = Math.abs(prev.close - prev.open);
+      const isBullLast = last.close > last.open;
+      const isBearLast = last.close < last.open;
+      const isBullPrev = prev.close > prev.open;
+      const isBearPrev = prev.close < prev.open;
+
+      let patternName = "Mixed Candles (No Strong Pattern)";
+      let patternBias = "NEUTRAL";
+      let confirmed = false;
+
+      if (
+        isBullLast &&
+        isBearPrev &&
+        last.open <= prev.close &&
+        last.close >= prev.open &&
+        bodyLast > bodyPrev * 0.95
+      ) {
+        patternName = "Bullish Engulfing";
+        patternBias = "BULLISH";
+        confirmed = last.close > prev.high;
+      } else if (
+        isBearLast &&
+        isBullPrev &&
+        last.open >= prev.close &&
+        last.close <= prev.open &&
+        bodyLast > bodyPrev * 0.95
+      ) {
+        patternName = "Bearish Engulfing";
+        patternBias = "BEARISH";
+        confirmed = last.close < prev.low;
+      } else if (lowerWick >= bodyLast * 2 && upperWick <= rangeLast * 0.15 && bodyLast > 0) {
+        patternName = prev.close < prev2.close ? "Hammer" : "Hanging Man";
+        patternBias = prev.close < prev2.close ? "BULLISH" : "BEARISH";
+        confirmed = patternBias === "BULLISH" ? isBullLast : isBearPrev;
+      } else if (upperWick >= bodyLast * 2 && lowerWick <= rangeLast * 0.15 && bodyLast > 0) {
+        patternName = prev.close > prev2.close ? "Shooting Star" : "Inverted Hammer";
+        patternBias = prev.close > prev2.close ? "BEARISH" : "BULLISH";
+        confirmed = patternBias === "BEARISH" ? isBearLast : isBullLast;
+      } else if (bodyLast <= rangeLast * 0.12) {
+        patternName = "Doji (Pause / Indecision)";
+        patternBias = "CAUTION";
+        confirmed = false;
+      }
+
+      const trendLabel = ema9 > ema21 ? "Uptrend (EMA 9 > 21)" : ema9 < ema21 ? "Downtrend (EMA 9 < 21)" : "Sideways";
+
+      return {
+        lastPrice: last.close,
+        ema9,
+        ema21,
+        rsi,
+        support,
+        resistance,
+        volRatio,
+        patternName,
+        patternBias,
+        confirmed,
+        trendLabel
+      };
+    }
+
+    function buildVerdictFromAudit(audit, userText) {
+      const q = (userText || "").toLowerCase();
+      const wantsPut = q.includes("put") || q.includes("short") || q.includes("sell") || q.includes("down");
+      const wantsCall = q.includes("call") || q.includes("long") || q.includes("buy") || q.includes("up");
+
+      const price = audit.lastPrice;
+      const atrApprox = Math.max(price * 0.004, (audit.resistance - audit.support) * 0.12);
+
+      let verdictType = "WAIT";
+      let verdictBadge = "WAIT — NO CLEAR EDGE";
+      let score = 5;
+      let bestTime = "Wait for the next closed candle near a clear floor or ceiling.";
+      let entryNum = price;
+      let targetNum = price + atrApprox * 1.6;
+      let stopNum = price - atrApprox;
+
+      if (audit.patternBias === "BULLISH" && audit.ema9 >= audit.ema21 && !wantsPut) {
+        verdictType = "CALL";
+        verdictBadge = "GOOD FOR CALL (BUY SIDE)";
+        score = audit.confirmed ? 8 : 7;
+        bestTime = `Best right after this ${state.timeframe} candle closes green; good for a quick 1 to 3 candle move.`;
+        entryNum = price;
+        targetNum = Math.min(audit.resistance, price + atrApprox * 1.8);
+        stopNum = Math.max(audit.support, price - atrApprox);
+      } else if (audit.patternBias === "BEARISH" && audit.ema9 <= audit.ema21 && !wantsCall) {
+        verdictType = "PUT";
+        verdictBadge = "GOOD FOR PUT (SELL / DOWN SIDE)";
+        score = audit.confirmed ? 8 : 7;
+        bestTime = `Best right after this ${state.timeframe} candle closes red; look for a 1 to 3 candle pullback move.`;
+        entryNum = price;
+        targetNum = Math.max(audit.support, price - atrApprox * 1.8);
+        stopNum = Math.min(audit.resistance, price + atrApprox);
+      } else if (wantsPut && audit.ema9 > audit.ema21 && audit.patternBias !== "BEARISH") {
+        verdictType = "WAIT";
+        verdictBadge = "RISKY PUT — TREND IS UP";
+        score = 3;
+        bestTime = `Avoid putting money into a Put while ${state.symbol} is above EMA 9/21 unless a red reversal candle closes at resistance.`;
+        entryNum = audit.resistance;
+        targetNum = price - atrApprox;
+        stopNum = audit.resistance + atrApprox * 0.7;
+      } else if (wantsCall && audit.ema9 < audit.ema21 && audit.patternBias !== "BULLISH") {
+        verdictType = "WAIT";
+        verdictBadge = "RISKY CALL — TREND IS DOWN";
+        score = 3;
+        bestTime = `Avoid buying a Call while ${state.symbol} is below EMA 9/21 unless price bounces off support with a green candle.`;
+        entryNum = audit.support;
+        targetNum = price + atrApprox;
+        stopNum = audit.support - atrApprox * 0.7;
+      } else {
+        verdictType = "WAIT";
+        verdictBadge = "WAIT — MIXED SIGNALS";
+        score = 5;
+        bestTime = `Wait for a clean candle close above ${formatPrice(audit.resistance)} for Calls or below ${formatPrice(audit.support)} for Puts.`;
+        entryNum = price;
+        targetNum = price + atrApprox * 1.4;
+        stopNum = price - atrApprox;
+      }
+
+      const summary =
+        verdictType === "CALL"
+          ? `${state.symbol} on the ${state.timeframe} chart shows buying pressure (${audit.patternName}) aligned with an upward trend.`
+          : verdictType === "PUT"
+          ? `${state.symbol} on the ${state.timeframe} chart shows selling pressure (${audit.patternName}) aligned with a downward trend.`
+          : `${state.symbol} on the ${state.timeframe} chart does not give a high-confidence trade right now — waiting is safer than guessing.`;
+
+      const reasons = [
+        `Candle Check: Latest pattern is ${audit.patternName} (${audit.confirmed ? "confirmed by candle close" : "still needs close follow-through"}).`,
+        `Trend & Momentum: ${audit.trendLabel}, with RSI (14) at ${audit.rsi}.`,
+        `Key Levels & Volume: Nearby floor is ${formatPrice(audit.support)}, ceiling is ${formatPrice(audit.resistance)}, and volume is ${audit.volRatio}x average.`
+      ];
+
+      const watchOut =
+        audit.rsi > 70
+          ? "RSI is above 70 (overbought) — sudden pullbacks happen fast, so protect your stop loss."
+          : audit.rsi < 30
+          ? "RSI is below 30 (oversold) — sharp bounces can squeeze late sellers quickly."
+          : "Do not enter mid-range without a stop loss; wait for a clean candle close.";
+
+      return {
+        verdictType,
+        verdictBadge,
+        score,
+        summary,
+        bestTime,
+        entryText: formatPrice(entryNum),
+        targetText: formatPrice(targetNum),
+        stopText: formatPrice(stopNum),
+        entryNum,
+        targetNum,
+        stopNum,
+        reasons,
+        watchOut
+      };
+    }
+
+    function updateSnapshots() {
+      const audit = state.audit;
+      if (!audit) return;
+
+      const price = state.tickerPrice || audit.lastPrice;
+      const chgText = state.change24h !== null
+        ? `${state.change24h >= 0 ? "+" : ""}${state.change24h.toFixed(2)}% (24h)`
+        : (state.isFallbackFeed ? "Simulated live feed" : "Delta Exchange feed");
+
+      document.getElementById("chatActivePairLabel").textContent = `${state.symbol} • ${state.timeframe}`;
+      document.getElementById("chatSnapPrice").textContent = formatPrice(price);
+      document.getElementById("chatSnapChange").textContent = chgText;
+      document.getElementById("chatSnapPattern").textContent = audit.patternName;
+      document.getElementById("chatSnapConfirm").textContent = audit.confirmed ? "Close confirmed" : "Watch next close";
+      document.getElementById("chatSnapTrend").textContent = audit.ema9 > audit.ema21 ? "Bullish EMA" : "Bearish EMA";
+      document.getElementById("chatSnapRsi").textContent = `RSI (14): ${audit.rsi}`;
+      document.getElementById("chatSnapLevels").textContent = `${formatPrice(audit.support)} / ${formatPrice(audit.resistance)}`;
+      document.getElementById("chatSnapVolume").textContent = `Vol: ${audit.volRatio}x avg`;
+
+      document.getElementById("detailPatternName").textContent = audit.patternName;
+      document.getElementById("detailPatternBias").textContent = `Bias: ${audit.patternBias}`;
+      document.getElementById("detailEma").textContent = `${formatPrice(audit.ema9)} / ${formatPrice(audit.ema21)}`;
+      document.getElementById("detailEmaBias").textContent = audit.trendLabel;
+      document.getElementById("detailSupport").textContent = formatPrice(audit.support);
+      document.getElementById("detailResistance").textContent = formatPrice(audit.resistance);
+
+      const badge = document.getElementById("feedBadge");
+      if (state.isFallbackFeed) {
+        badge.textContent = "Backup Chart Feed";
+        badge.classList.add("fallback");
+      } else {
+        badge.textContent = "Live Delta Feed";
+        badge.classList.remove("fallback");
+      }
+
+      const nowStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      document.getElementById("chartLastUpdated").textContent = `${state.symbol} (${state.timeframe}) • ${nowStr}`;
+    }
+
+    function appendUserMessage(text) {
+      const feed = document.getElementById("chatFeed");
+      const row = document.createElement("div");
+      row.className = "msg-row user";
+      row.innerHTML = `<div class="msg-bubble-user">${escapeHtml(text)}</div>`;
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function appendVerdictCard(verdict) {
+      const feed = document.getElementById("chatFeed");
+      const row = document.createElement("div");
+      row.className = "msg-row";
+      const reasonsHtml = verdict.reasons.map(r => `<li>${escapeHtml(r)}</li>`).join("");
+
+      row.innerHTML = `
+        <div class="msg-avatar">NC</div>
+        <div class="msg-card-bot">
+          <div class="verdict-top-bar">
+            <span class="verdict-badge ${verdict.verdictType}">${escapeHtml(verdict.verdictBadge)}</span>
+            <span class="score-pill">Setup Score: ${verdict.score}/10</span>
+          </div>
+          <p class="summary-text">${escapeHtml(verdict.summary)}</p>
+          <div class="meta-grid">
+            <div class="meta-box">
+              <div class="meta-title">When To Trade &amp; Hold</div>
+              <div class="meta-val">${escapeHtml(verdict.bestTime)}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-title">Entry Zone</div>
+              <div class="meta-val entry">${escapeHtml(verdict.entryText)}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-title">Profit Target</div>
+              <div class="meta-val target">${escapeHtml(verdict.targetText)}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-title">Stop Loss</div>
+              <div class="meta-val stop">${escapeHtml(verdict.stopText)}</div>
+            </div>
+          </div>
+          <ul class="reasons-list">${reasonsHtml}</ul>
+          <div class="watchout-box"><strong>Watch Out:</strong> ${escapeHtml(verdict.watchOut)}</div>
+        </div>
+      `;
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function updatePlottedLevelsLabel() {
+      const el = document.getElementById("plottedLevelsReadout");
+      if (!state.plottedTrade) {
+        el.textContent = "Entry: -- | Target: -- | Stop: --";
+        return;
+      }
+      el.textContent = `Entry: ${formatPrice(state.plottedTrade.entry)} | Target: ${formatPrice(state.plottedTrade.target)} | Stop: ${formatPrice(state.plottedTrade.stop)}`;
+    }
+
+    function renderCandlestickChart() {
+      const canvas = document.getElementById("candleCanvas");
+      if (!canvas) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(300, Math.floor(rect.width));
+      const h = Math.max(240, Math.floor(rect.height));
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      const candles = state.candles;
+      if (!candles || !candles.length) return;
+
+      const padLeft = 10;
+      const padRight = 68;
+      const padTop = 16;
+      const padBottom = 24;
+      const plotW = Math.max(60, w - padLeft - padRight);
+      const plotH = Math.max(60, h - padTop - padBottom);
+
+      let minP = Math.min(...candles.map(c => c.low));
+      let maxP = Math.max(...candles.map(c => c.high));
+
+      if (state.plottedTrade) {
+        minP = Math.min(minP, state.plottedTrade.stop);
+        maxP = Math.max(maxP, state.plottedTrade.target);
+      }
+
+      const span = Math.max(1e-6, maxP - minP);
+      minP -= span * 0.06;
+      maxP += span * 0.06;
+
+      const yForPrice = (p) => padTop + (1 - (p - minP) / (maxP - minP)) * plotH;
+
+      // Grid & Right Price Axis
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "left";
+      for (let i = 0; i <= 4; i++) {
+        const y = padTop + (i / 4) * plotH;
+        const pVal = maxP - (i / 4) * (maxP - minP);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(padLeft + plotW, y);
+        ctx.stroke();
+        ctx.fillText(formatPrice(pVal).replace("$", ""), padLeft + plotW + 6, y + 4);
+      }
+
+      // Draw Candles
+      const stepX = plotW / candles.length;
+      const candleW = Math.max(2.5, Math.min(11, stepX * 0.65));
+
+      candles.forEach((c, idx) => {
+        const cx = padLeft + idx * stepX + stepX / 2;
+        const yOpen = yForPrice(c.open);
+        const yClose = yForPrice(c.close);
+        const yHigh = yForPrice(c.high);
+        const yLow = yForPrice(c.low);
+        const bull = c.close >= c.open;
+        const color = bull ? "#10b981" : "#ef4444";
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx, yHigh);
+        ctx.lineTo(cx, yLow);
+        ctx.stroke();
+
+        const topY = Math.min(yOpen, yClose);
+        const boxH = Math.max(1.5, Math.abs(yClose - yOpen));
+        ctx.fillStyle = color;
+        ctx.fillRect(cx - candleW / 2, topY, candleW, boxH);
+      });
+
+      // EMA 9 & EMA 21 Lines
+      const closes = candles.map(c => c.close);
+      const ema9 = calcEMA(closes, 9);
+      const ema21 = calcEMA(closes, 21);
+
+      function drawLine(arr, strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        arr.forEach((val, idx) => {
+          const x = padLeft + idx * stepX + stepX / 2;
+          const y = yForPrice(val);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      drawLine(ema9, "#38bdf8");
+      drawLine(ema21, "#f59e0b");
+
+      // Plotted Trade Entry / Target / Stop Loss
+      if (state.plottedTrade) {
+        const lines = [
+          { price: state.plottedTrade.entry, label: "ENTRY", color: "#38bdf8" },
+          { price: state.plottedTrade.target, label: "TARGET", color: "#10b981" },
+          { price: state.plottedTrade.stop, label: "STOP", color: "#ef4444" }
+        ];
+        lines.forEach(item => {
+          const y = yForPrice(item.price);
+          ctx.save();
+          ctx.setLineDash([5, 4]);
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(padLeft, y);
+          ctx.lineTo(padLeft + plotW, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = item.color;
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillText(item.label, padLeft + 6, y - 4);
+          ctx.restore();
+        });
+      }
+
+      // Hover Crosshair Highlight
+      if (state.hoverIndex !== null && candles[state.hoverIndex]) {
+        const c = candles[state.hoverIndex];
+        const hx = padLeft + state.hoverIndex * stepX + stepX / 2;
+        ctx.strokeStyle = "rgba(248, 250, 252, 0.35)";
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(hx, padTop);
+        ctx.lineTo(hx, padTop + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function bindChartHover() {
+      const canvas = document.getElementById("candleCanvas");
+      canvas.addEventListener("mousemove", (e) => {
+        if (!state.candles.length) return;
+        const rect = canvas.getBoundingClientRect();
+        const padLeft = 10;
+        const padRight = 68;
+        const plotW = Math.max(60, rect.width - padLeft - padRight);
+        const relX = e.clientX - rect.left - padLeft;
+        const idx = Math.floor((relX / plotW) * state.candles.length);
+        if (idx >= 0 && idx < state.candles.length) {
+          state.hoverIndex = idx;
+          const c = state.candles[idx];
+          document.getElementById("hoverReadout").textContent =
+            `O: ${formatPrice(c.open)} | H: ${formatPrice(c.high)} | L: ${formatPrice(c.low)} | C: ${formatPrice(c.close)}`;
+          renderCandlestickChart();
+        }
+      });
+      canvas.addEventListener("mouseleave", () => {
+        state.hoverIndex = null;
+        renderCandlestickChart();
+      });
+    }
+
+    async function loadMarketData(sym = state.symbol, tf = state.timeframe) {
+      state.symbol = sym;
+      state.timeframe = tf;
+
+      document.querySelectorAll("#symbolGroup .mini-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.sym === state.symbol);
+      });
+      document.querySelectorAll("#tfGroup .mini-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tf === state.timeframe);
+      });
+
+      const candles = await fetchDeltaCandles(state.symbol, state.timeframe);
+      state.candles = candles;
+      state.tickerPrice = candles[candles.length - 1].close;
+      const firstClose = candles[0].open || state.tickerPrice;
+      state.change24h = ((state.tickerPrice - firstClose) / firstClose) * 100;
+      state.audit = runNisonChartAudit(candles);
+
+      updateSnapshots();
+      renderCandlestickChart();
+    }
+
+    async function handleTradeQuestion(text) {
+      const trimmed = (text || "").trim();
+      if (!trimmed) return;
+
+      appendUserMessage(trimmed);
+
+      const detected = parseSymbolAndTimeframe(trimmed);
+      const targetSym = detected.symbol || state.symbol;
+      const targetTf = detected.timeframe || state.timeframe;
+
+      await loadMarketData(targetSym, targetTf);
+
+      const verdict = buildVerdictFromAudit(state.audit, trimmed);
+      state.plottedTrade = {
+        entry: verdict.entryNum,
+        target: verdict.targetNum,
+        stop: verdict.stopNum
+      };
+      updatePlottedLevelsLabel();
+      renderCandlestickChart();
+      appendVerdictCard(verdict);
+    }
+
+    function initSelectorsAndGuide() {
+      const symGroup = document.getElementById("symbolGroup");
+      SYMBOLS.forEach(s => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mini-btn" + (s === state.symbol ? " active" : "");
+        btn.dataset.sym = s;
+        btn.textContent = s.replace("USD", "");
+        btn.addEventListener("click", () => loadMarketData(s, state.timeframe));
+        symGroup.appendChild(btn);
+      });
+
+      const tfGroup = document.getElementById("tfGroup");
+      TIMEFRAMES.forEach(t => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mini-btn" + (t === state.timeframe ? " active" : "");
+        btn.dataset.tf = t;
+        btn.textContent = t;
+        btn.addEventListener("click", () => loadMarketData(state.symbol, t));
+        tfGroup.appendChild(btn);
+      });
+
+      const guideList = document.getElementById("guideList");
+      function renderGuideItems(filter = "") {
+        const f = filter.trim().toLowerCase();
+        const items = CANDLE_GUIDE.filter(g => !f || g.name.toLowerCase().includes(f) || g.desc.toLowerCase().includes(f));
+        guideList.innerHTML = items.map(g => `
+          <div class="guide-item">
+            <div>
+              <div class="guide-name">${escapeHtml(g.name)}</div>
+              <div class="guide-desc">${escapeHtml(g.desc)}</div>
+            </div>
+          </div>
+        `).join("") || `<div class="guide-desc">No matching candlestick pattern found.</div>`;
+      }
+      renderGuideItems();
+
+      document.getElementById("guideSearch").addEventListener("input", (e) => renderGuideItems(e.target.value));
+      document.getElementById("openGuideBtn").addEventListener("click", () => {
+        document.getElementById("guideModal").classList.add("open");
+      });
+      document.getElementById("closeGuideBtn").addEventListener("click", () => {
+        document.getElementById("guideModal").classList.remove("open");
+      });
+      document.getElementById("guideModal").addEventListener("click", (e) => {
+        if (e.target.id === "guideModal") e.currentTarget.classList.remove("open");
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      document.getElementById("tabChatBtn").addEventListener("click", () => switchPrimaryTab("chat"));
+      document.getElementById("tabChartBtn").addEventListener("click", () => switchPrimaryTab("chart"));
+
+      document.getElementById("clearLevelsBtn").addEventListener("click", () => {
+        state.plottedTrade = null;
+        updatePlottedLevelsLabel();
+        renderCandlestickChart();
+      });
+
+      document.querySelectorAll("#quickChips .chip-btn").forEach(btn => {
+        btn.addEventListener("click", () => handleTradeQuestion(btn.dataset.q));
+      });
+
+      document.getElementById("chatForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("tradeInput");
+        const q = input.value;
+        input.value = "";
+        await handleTradeQuestion(q);
+      });
+
+      initSelectorsAndGuide();
+      bindChartHover();
+
+      await loadMarketData(state.symbol, state.timeframe);
+      const initialVerdict = buildVerdictFromAudit(state.audit, "Should I buy a BTC Call or Put on the 15m chart right now?");
+      state.plottedTrade = {
+        entry: initialVerdict.entryNum,
+        target: initialVerdict.targetNum,
+        stop: initialVerdict.stopNum
+      };
+      updatePlottedLevelsLabel();
+      renderCandlestickChart();
+      appendVerdictCard(initialVerdict);
+
+      setInterval(() => {
+        loadMarketData(state.symbol, state.timeframe);
+      }, 15000);
+    });
+  </script>
+</body>
+</html>

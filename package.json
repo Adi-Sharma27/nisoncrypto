@@ -1,0 +1,18 @@
+{
+  "name": "nisoncrypto-apk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NisonCrypto Delta Exchange Candlestick Trade Evaluator Android APK wrapper",
+  "scripts": {
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
